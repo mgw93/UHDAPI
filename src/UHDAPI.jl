@@ -61,8 +61,8 @@ function genuhdconstructor(s::String,args::Tuple{Symbol,Type}...;f::Symbol=getuh
             handle=Ref{$handle}(0);
             @checkuhderr $f(handle,$(first.(args)...));
             $(isstreamer ?
-                :(x=$name(handle[],Ref{Uhdobject}());) :
-                :(x=$name(handle[]);)
+                :(x=$name(handle,Ref{Uhdobject}());) :
+                :(x=$name(handle);)
             )
             finalizer(x) do xx
                 #ccall(:jl_safe_printf, Cvoid, (Cstring,), "Finalizing $($name).\n"); # Debug
@@ -88,7 +88,7 @@ function genuhdobj(s :: String,args :: Tuple{Symbol,Type}...;getters=Dict{Symbol
     @eval begin
         export $name;
         mutable struct $(name) <: Uhdobject
-            handle :: $handle
+            handle :: Ref{$handle}
             $(isstreamer ? :(usrp :: Ref{T} where {T<:Uhdobject}) : nothing)
         end
 
@@ -96,7 +96,7 @@ function genuhdobj(s :: String,args :: Tuple{Symbol,Type}...;getters=Dict{Symbol
             g=$getters;
             if sym===:h
                 h=getfield(obj,:handle);
-                if h==C_NULL
+		if h[]==C_NULL
                     error(string("Attempting to access uninitialized $name"));
                 end
                 return h;
@@ -108,8 +108,8 @@ function genuhdobj(s :: String,args :: Tuple{Symbol,Type}...;getters=Dict{Symbol
         end
 
         Base.propertynames(t::Type{$name},private::Bool=false)=$(tuple(:h,keys(getters)...));
-        Base.cconvert(t::Type{$handle}, x::$name) = x.h;
-        Base.cconvert(t::Type{Ptr{$handle}}, x::$name) = Ref(x.h);
+	Base.cconvert(t::Type{$handle}, x::$name) = x.h[];
+        Base.cconvert(t::Type{Ptr{$handle}}, x::$name) = x.h;
     end
     if !isnothing(pp)
         @eval function Base.show(io::IO,x::$name)
