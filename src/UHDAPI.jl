@@ -460,7 +460,7 @@ begin
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Bool),(:utrue,String),(:ufalse,String),f=:uhd_sensor_value_make_from_bool);
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Int),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_int);
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Cdouble),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_realnum);
-    genuhdconstructor("uhd_sensor_value",(:name,String),(:value,String),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_string);
+    genuhdconstructor("uhd_sensor_value",(:name,String),(:value,String),(:unit,String),f=:uhd_sensor_value_make_from_string);
 end
 
 #TODO conversion functions
