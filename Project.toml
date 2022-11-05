@@ -1,0 +1,7 @@
+name = "UHDAPI"
+uuid = "88b9fb92-0a92-4565-b203-7b4972b7e638"
+authors = ["Markus Wirsing <markus.wirsing@gmx.de> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1.8"
