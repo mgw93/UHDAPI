@@ -107,9 +107,11 @@ function genuhdobj(s :: String,args :: Tuple{Symbol,Type}...;getters=Dict{Symbol
             end
         end
 
-        Base.propertynames(t::Type{$name},private::Bool=false)=$(tuple(:h,keys(getters)...));
-	Base.cconvert(t::Type{$handle}, x::$name) = x.h[];
-        Base.cconvert(t::Type{Ptr{$handle}}, x::$name) = x.h;
+        Base.propertynames(_::Type{$name},private::Bool=false)=$(tuple(:h,keys(getters)...));
+	    Base.cconvert(_::Type{$handle}, x::$name) = x;
+        Base.cconvert(_::Type{Ptr{$handle}}, x::$name) = x;
+	    Base.unsafe_convert(_::Type{$handle}, x::$name) = x.h[];
+        Base.unsafe_convert(t::Type{Ptr{$handle}}, x::$name) = Base.unsafe_convert(t,x.h);
     end
     if !isnothing(pp)
         @eval function Base.show(io::IO,x::$name)
@@ -125,7 +127,7 @@ function genuhdget(name::Symbol,rettype::Union{Type,Tuple{Vararg{Type}}},params:
     @eval export $name;
     @eval function $name(obj::$t,$(map(x-> Expr(:(::), x...), params)...))
         getvalue($rettype) do x...
-            @checkuhderr $(Expr(:call,Symbol(prefix,name),:obj,first.(params)...,:(x...)))
+            @checkuhderr $(Symbol(prefix,name))(obj,$(first.(params)...),x...)
         end
     end;
 end;
