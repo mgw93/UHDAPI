@@ -24,12 +24,12 @@ function getvalue(f::Function, t::Type{T}) :: T where {T<:Uhdobject}
     return tmp;
 end
 
-function getvalue(f::Function, t::Type{String}) :: String
+function getvalue(f::Function, _::Type{String}) :: String
     getstr(f);
 end
 
 function getvalue(f::Function, t::Type{Vector{String}}) :: Vector{String}
-    sv=Uhd_string_vector();
+    sv=t();
     f(sv);
     return identity.(sv);
 end
@@ -50,7 +50,7 @@ function getvalue(f::Function, ts::Tuple{Vararg{Type}})
     return getindex.(refs);
 end
 
-function genuhdconstructor(s::String,args::Tuple{Symbol,Type}...;f::Symbol=getuhdsym("_make",name))
+function genuhdconstructor(s::String,args::Tuple{Symbol,Type}...;f::Symbol=getuhdsym("_make",s))
     constructorargs=map(x-> Expr(:(::), x...), args);
     handle=getuhdsym("_handle",s);
     free=getuhdsym("_free",s);
@@ -96,7 +96,7 @@ function genuhdobj(s :: String,args :: Tuple{Symbol,Type}...;getters=Dict{Symbol
             g=$getters;
             if sym===:h
                 h=getfield(obj,:handle);
-		if h[]==C_NULL
+            if h[]==C_NULL
                     error(string("Attempting to access uninitialized $name"));
                 end
                 return h;
@@ -329,7 +329,7 @@ function recv!(buffers::Vector{T},streamer::Uhd_rx_streamer,samps_per_buff::Csiz
 end
 genuhdset(:issue_stream_cmd,(:stream_cmd,uhd_stream_cmd_t),prefix=:uhd_rx_streamer_,t=Uhd_rx_streamer)
 
-Base.cconvert(t::Type{Ptr{uhd_stream_cmd_t}},x::uhd_stream_cmd_t) = Ref(x);
+Base.cconvert(_::Type{Ptr{uhd_stream_cmd_t}},x::uhd_stream_cmd_t) = Ref(x);
 
 ## uhd_tx_streamer
 begin
@@ -370,7 +370,7 @@ begin
     genvectorhelpers("uhd_meta_range",uhd_range_t);
 end
 
-Base.cconvert(t::Type{Ptr{uhd_range_t}},x::uhd_range_t) = Ref{uhd_range_t}(x);
+Base.cconvert(_::Type{Ptr{uhd_range_t}},x::uhd_range_t) = Ref{uhd_range_t}(x);
 genuhdget(:clip,Cdouble,(:value,Cdouble),(:clip_step,Bool),prefix=:uhd_meta_range,t=Uhd_meta_range);
 
 ## uhd_stream_args_t
@@ -443,7 +443,6 @@ end
 
 
 ## Uhd_sensor_value
-export uhd_sensor_value_data_type_t; # TODO: Translate this struct to native julia types
 for name in names(LibUHD; all=true)
     if startswith(string(name), "UHD_SENSOR_VALUE")
         @eval export $name
@@ -461,6 +460,15 @@ begin
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Int),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_int);
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Cdouble),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_realnum);
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,String),(:unit,String),f=:uhd_sensor_value_make_from_string);
+end
+
+function Base.convert(_::Type{Type},t::uhd_sensor_value_data_type_t)
+    if t≡UHD_SENSOR_VALUE_BOOLEAN Bool
+    elseif t≡UHD_SENSOR_VALUE_INTEGER Int
+    elseif t≡UHD_SENSOR_VALUE_REALNUM Cdouble
+    elseif t≡UHD_SENSOR_VALUE_STRING String
+    else error("Invalid value for uhd_sensor_value_data_type.");
+    end
 end
 
 #TODO conversion functions
