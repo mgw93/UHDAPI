@@ -28,8 +28,8 @@ function getvalue(f::Function, _::Type{String}) :: String
     getstr(f);
 end
 
-function getvalue(f::Function, t::Type{Vector{String}}) :: Vector{String}
-    sv=t();
+function getvalue(f::Function, _::Type{Vector{String}}) :: Vector{String}
+    sv=Uhd_string_vector();
     f(sv);
     return identity.(sv);
 end
