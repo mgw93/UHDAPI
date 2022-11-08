@@ -620,7 +620,7 @@ begin
     genuhdget(:get_tx_antennas,Vector{String},chan);
     genuhdget(:get_tx_bandwidth,Cdouble,chan);
     genuhdget(:get_tx_bandwidth_range,Uhd_meta_range,chan);
-    genuhdget(:get_tx_sensor,Uhd_sensor_value,name);
+    genuhdget(:get_tx_sensor,Uhd_sensor_value,name,chan);
     genuhdget(:get_tx_sensor_names,Vector{String},chan);
     genuhdget(:get_gpio_banks,Vector{String},mb);
     genuhdget(:get_gpio_attr,UInt32,(:bank,String),(:attr,String),chan);
