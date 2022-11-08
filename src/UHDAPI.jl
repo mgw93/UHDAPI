@@ -445,11 +445,6 @@ end
 
 
 ## Uhd_sensor_value
-for name in names(LibUHD; all=true)
-    if startswith(string(name), "UHD_SENSOR_VALUE")
-        @eval export $name
-    end
-end
 begin
     g=Dict(
         :name => (:uhd_sensor_value_name,String),
@@ -462,6 +457,9 @@ begin
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Int),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_int);
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Cdouble),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_realnum);
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,String),(:unit,String),f=:uhd_sensor_value_make_from_string);
+    genuhdget(:to_int,Int,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
+    genuhdget(:to_bool,Bool,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
+    genuhdget(:to_realnum,Cdouble,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
 end
 
 function Base.convert(_::Type{Type},t::uhd_sensor_value_data_type_t)
@@ -472,13 +470,6 @@ function Base.convert(_::Type{Type},t::uhd_sensor_value_data_type_t)
     else error("Invalid value for uhd_sensor_value_data_type.");
     end
 end
-
-genuhdget(:to_int,Int,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
-genuhdget(:to_bool,Bool,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
-genuhdget(:to_realnum,Cdouble,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
-
-
-#TODO conversion functions
 
 ## Uhd_subdev_spec
 genuhdobj("uhd_subdev_spec",(:name,String));
