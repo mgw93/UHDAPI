@@ -107,7 +107,7 @@ function genuhdobj(s :: String,args :: Tuple{Symbol,Type}...;getters=Dict{Symbol
             end
         end
 
-        Base.propertynames(_::Type{$name},private::Bool=false)=$(tuple(:h,keys(getters)...));
+        Base.propertynames(t::Type{$name},private::Bool=false)=$(tuple(:h,keys(getters)...));
 	    Base.cconvert(_::Type{$handle}, x::$name) = x;
         Base.cconvert(_::Type{Ptr{$handle}}, x::$name) = x;
 	    Base.unsafe_convert(_::Type{$handle}, x::$name) = x.h[];
@@ -472,6 +472,11 @@ function Base.convert(_::Type{Type},t::uhd_sensor_value_data_type_t)
     else error("Invalid value for uhd_sensor_value_data_type.");
     end
 end
+
+genuhdget(:to_int,Int,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
+genuhdget(:to_bool,Bool,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
+genuhdget(:to_realnum,Cdouble,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
+
 
 #TODO conversion functions
 
