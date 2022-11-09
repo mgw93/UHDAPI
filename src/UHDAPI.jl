@@ -97,7 +97,7 @@ function genuhdobj(s :: String,args :: Tuple{Symbol,Type}...;getters=Dict{Symbol
             if sym===:h
                 h=getfield(obj,:handle);
             if h[]==C_NULL
-                    error(string("Attempting to access uninitialized $name"));
+                    error(string("Attempting to access uninitialized $($name) object."));
                 end
                 return h;
             end
