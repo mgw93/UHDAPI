@@ -107,7 +107,13 @@ function genuhdobj(s :: String,args :: Tuple{Symbol,Type}...;getters=Dict{Symbol
             end
         end
 
-        Base.propertynames(t::Type{$name},private::Bool=false)=$(tuple(:h,keys(getters)...));
+        function Base.propertynames(x::$name,private::Bool=false)
+            p=$([:h,keys(getters)...]);
+            if private
+                push!(p,:handle);
+            end
+            return p
+        end
 	    Base.cconvert(_::Type{$handle}, x::$name) = x;
         Base.cconvert(_::Type{Ptr{$handle}}, x::$name) = x;
 	    Base.unsafe_convert(_::Type{$handle}, x::$name) = x.h[];
