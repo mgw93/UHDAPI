@@ -457,7 +457,7 @@ begin
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Int),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_int);
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Cdouble),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_realnum);
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,String),(:unit,String),f=:uhd_sensor_value_make_from_string);
-    genuhdget(:to_int,Int,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
+    genuhdget(:to_int,Cint,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
     genuhdget(:to_bool,Bool,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
     genuhdget(:to_realnum,Cdouble,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
 end
