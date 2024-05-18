@@ -96,7 +96,7 @@ function genuhdobj(s :: String,args :: Tuple{Symbol,Type}...;getters=Dict{Symbol
             g=$getters;
             if sym===:h
                 h=getfield(obj,:handle);
-            if h[]==C_NULL
+                if h[]==C_NULL
                     error(string("Attempting to access uninitialized $($name) object."));
                 end
                 return h;
@@ -114,9 +114,9 @@ function genuhdobj(s :: String,args :: Tuple{Symbol,Type}...;getters=Dict{Symbol
             end
             return p
         end
-	    Base.cconvert(_::Type{$handle}, x::$name) = x;
+        Base.cconvert(_::Type{$handle}, x::$name) = x;
         Base.cconvert(_::Type{Ptr{$handle}}, x::$name) = x;
-	    Base.unsafe_convert(_::Type{$handle}, x::$name) = x.h[];
+        Base.unsafe_convert(_::Type{$handle}, x::$name) = x.h[];
         Base.unsafe_convert(t::Type{Ptr{$handle}}, x::$name) = Base.unsafe_convert(t,x.h);
     end
     if !isnothing(pp)
