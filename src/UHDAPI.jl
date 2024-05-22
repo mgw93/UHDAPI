@@ -142,6 +142,7 @@ function genuhdset(name::Symbol,params::Tuple{Symbol,Type}...;prefix::Symbol=:uh
     @eval export $name;
     @eval function $name(obj::$t,$(map(x-> Expr(:(::), x...), params)...))
         @checkuhderr $(Expr(:call,Symbol(prefix,name),:obj,first.(params)...));
+        return nothing;
     end;
 end;
 
