@@ -327,7 +327,7 @@ begin
     genuhdobj("uhd_rx_streamer",getters=g);
 end
 export recv!;
-function recv!(buffers::Vector{T},streamer::Uhd_rx_streamer,samps_per_buff::Csize_t,timeout::Cdouble,one_packet::Bool=false) :: Tuple{Csize_t,Uhd_rx_metadata} where {T<:Ref}
+function recv!(buffers::Vector{T},streamer::Uhd_rx_streamer,samps_per_buff::Integer,timeout::Real,one_packet::Bool=false) :: Tuple{Csize_t,Uhd_rx_metadata} where {T<:Ref}
     md=Uhd_rx_metadata();
     pointers=pointer.(getindex.(buffers));
     GC.@preserve buffers items_received=getvalue(Csize_t) do items_received
@@ -349,7 +349,7 @@ begin
 end
 
 export recv_async_msg;
-function recv_async_msg(streamer::Uhd_tx_streamer,timeout::Cdouble) :: Union{Nothing,Uhd_async_metadata}
+function recv_async_msg(streamer::Uhd_tx_streamer,timeout::Real) :: Union{Nothing,Uhd_async_metadata}
     md=Uhd_async_metadata();
     valid=Ref{Bool}();
     @checkuhderr uhd_tx_streamer_recv_async_msg(streamer,md.h,timeout,valid);
@@ -357,7 +357,7 @@ function recv_async_msg(streamer::Uhd_tx_streamer,timeout::Cdouble) :: Union{Not
 end
 
 export send;
-function send(streamer::Uhd_tx_streamer,buffers::Vector{T},samps_per_buff::Csize_t,md::Uhd_tx_metadata,timeout::Cdouble) :: Csize_t where {T<:Ref}
+function send(streamer::Uhd_tx_streamer,buffers::Vector{T},samps_per_buff::Integer,md::Uhd_tx_metadata,timeout::Real) :: Csize_t where {T<:Ref}
     pointers=pointer.(getindex.(buffers));
     GC.@preserve buffers items_received=getvalue(Csize_t) do items_sent
         @checkuhderr uhd_tx_streamer_send(streamer,pointers,samps_per_buff,md,timeout,items_sent);
@@ -379,7 +379,7 @@ begin
 end
 
 Base.cconvert(_::Type{Ptr{uhd_range_t}},x::uhd_range_t) = Ref{uhd_range_t}(x);
-genuhdget(:clip,Cdouble,(:value,Cdouble),(:clip_step,Bool),prefix=:uhd_meta_range,t=Uhd_meta_range);
+genuhdget(:clip,Cdouble,(:value,Real),(:clip_step,Bool),prefix=:uhd_meta_range,t=Uhd_meta_range);
 
 ## uhd_stream_args_t
 export Uhd_stream_args;
@@ -387,7 +387,7 @@ struct Uhd_stream_args
     cpu_format :: String
     otw_format :: String
     args :: String
-    channel_list :: Vector{UInt64}
+    channel_list :: Vector{Union{Int64, UInt64}}
 end
 
 function Base.getproperty(obj::Uhd_stream_args,sym::Symbol)
@@ -460,8 +460,8 @@ begin
     );
     genuhdobj("uhd_sensor_value",getters=g);
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Bool),(:utrue,String),(:ufalse,String),f=:uhd_sensor_value_make_from_bool);
-    genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Int),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_int);
-    genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Cdouble),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_realnum);
+    genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Integer),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_int);
+    genuhdconstructor("uhd_sensor_value",(:name,String),(:value,Real),(:unit,String),(:formatter,String),f=:uhd_sensor_value_make_from_realnum);
     genuhdconstructor("uhd_sensor_value",(:name,String),(:value,String),(:unit,String),f=:uhd_sensor_value_make_from_string);
     genuhdget(:to_int,Cint,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
     genuhdget(:to_bool,Bool,prefix=:uhd_sensor_value_,t=Uhd_sensor_value);
@@ -506,16 +506,24 @@ version_string() = getstr(uhd_get_version_string);
 genuhdobj("uhd_usrp",(:args,String));
 Uhd_usrp()=Uhd_usrp("");
 export set_rx_freq, set_tx_freq, get_rx_stream, get_tx_stream, get_rx_info, get_tx_info, get_mboard_eeprom, get_dboard_eeprom;
-function set_rx_freq(u::Uhd_usrp,tune_request::Uhd_tune_request,chan::Csize_t) :: uhd_tune_result_t
+function set_rx_freq(u::Uhd_usrp,tune_request::Uhd_tune_request,chan::Integer) :: uhd_tune_result_t
     GC.@preserve tune_request getvalue(uhd_tune_result_t) do tune_result
         @checkuhderr uhd_usrp_set_rx_freq(u,tune_request.cref,chan,tune_result);
     end
 end
+function set_rx_freq(u::Uhd_usrp,freq::Real,chan::Integer) :: uhd_tune_result_t
+    tune_req=Uhd_tune_request(freq);
+    set_rx_freq(u,tune_req,chan)
+end
 
-function set_tx_freq(u::Uhd_usrp,tune_request::Uhd_tune_request,chan::Csize_t) :: uhd_tune_result_t
+function set_tx_freq(u::Uhd_usrp,tune_request::Uhd_tune_request,chan::Integer) :: uhd_tune_result_t
     GC.@preserve tune_request getvalue(uhd_tune_result_t) do tune_result
         @checkuhderr uhd_usrp_set_tx_freq(u,tune_request.cref,chan,tune_result);
     end
+end
+function set_tx_freq(u::Uhd_usrp,freq::Real,chan::Integer) :: uhd_tune_result_t
+    tune_req=Uhd_tune_request(freq);
+    set_tx_freq(u,tune_req,chan)
 end
 
 function get_rx_stream(u::Uhd_usrp,args::Uhd_stream_args) :: Uhd_rx_streamer
@@ -566,8 +574,8 @@ end
 
 
 begin
-    chan=(:chan,Csize_t);
-    mb=(:mboard,Int);
+    chan=(:chan,Integer);
+    mb=(:mboard,Integer);
     name=(:name,String);
 
     genuhdget(:get_master_clock_rate,Cdouble,mb);
@@ -631,49 +639,49 @@ begin
     genuhdget(:get_gpio_banks,Vector{String},mb);
     genuhdget(:get_gpio_attr,UInt32,(:bank,String),(:attr,String),chan);
 
-    genuhdset(:set_master_clock_rate,(:rate,Cdouble),mb);
-    genuhdset(:set_time_now,(:full_secs,Int64),(:frac_secs,Cdouble),mb);
-    genuhdset(:set_time_next_pps,(:full_secs,Int64),(:frac_secs,Cdouble),mb);
-    genuhdset(:set_time_unknown_pps,(:full_secs,Int64),(:frac_secs,Cdouble));
-    genuhdset(:set_command_time,(:full_secs,Int64),(:frac_secs,Cdouble),mb);
+    genuhdset(:set_master_clock_rate,(:rate,Real),mb);
+    genuhdset(:set_time_now,(:full_secs,Int64),(:frac_secs,Real),mb);
+    genuhdset(:set_time_next_pps,(:full_secs,Int64),(:frac_secs,Real),mb);
+    genuhdset(:set_time_unknown_pps,(:full_secs,Int64),(:frac_secs,Real));
+    genuhdset(:set_command_time,(:full_secs,Int64),(:frac_secs,Real),mb);
     genuhdset(:clear_command_time,mb);
     genuhdset(:set_time_source,(:time_source,String),mb);
     genuhdset(:set_clock_source,(:clock_source,String),mb);
     genuhdset(:set_clock_source_out,(:enb,Bool),mb);
     genuhdset(:set_time_source_out,(:enb,Bool),mb);
-    genuhdset(:set_user_register,(:addr,UInt8),(:data,UInt32),mb);
+    genuhdset(:set_user_register,(:addr,Integer),(:data,Integer),mb);
     genuhdset(:set_mboard_eeprom,(:mb_eeprom,Uhd_mboard_eeprom),mb);
     genuhdset(:set_dboard_eeprom,(:db_eeprom,Uhd_dboard_eeprom),(:unit,String),(:slot,String),mb);
     genuhdset(:set_rx_subdev_spec,(:subdev_spec,Uhd_subdev_spec),mb);
-    genuhdset(:set_rx_rate,(:rate,Cdouble),chan);
+    genuhdset(:set_rx_rate,(:rate,Real),chan);
     genuhdset(:set_rx_lo_source,(:src,String),name,chan);
     genuhdset(:set_rx_lo_export_enabled,(:enabled,Bool),name,chan);
-    genuhdget(:set_rx_lo_freq,Cdouble,(:freq,Cdouble),name,chan);
-    genuhdset(:set_rx_gain,(:gain,Cdouble),chan,(:gain_name,String));
-    genuhdset(:set_normalized_rx_gain,(:gain,Cdouble),chan);
+    genuhdget(:set_rx_lo_freq,Cdouble,(:freq,Real),name,chan);
+    genuhdset(:set_rx_gain,(:gain,Real),chan,(:gain_name,String));
+    genuhdset(:set_normalized_rx_gain,(:gain,Real),chan);
     genuhdset(:set_rx_agc,(:enable,Bool),chan);
     genuhdset(:set_rx_antenna,(:ant,String),chan);
-    genuhdset(:set_rx_bandwidth,(:bandwidth,Cdouble),chan);
+    genuhdset(:set_rx_bandwidth,(:bandwidth,Real),chan);
     genuhdset(:set_rx_dc_offset_enabled,(:enb,Bool),chan);
     genuhdset(:set_rx_iq_balance_enabled,(:enb,Bool),chan);
     genuhdset(:set_tx_subdev_spec,(:subdev_spec,Uhd_subdev_spec),mb);
-    genuhdset(:set_tx_rate,(:rate,Cdouble),chan);
+    genuhdset(:set_tx_rate,(:rate,Real),chan);
     genuhdset(:set_tx_lo_source,(:src,String),name,chan);
     genuhdset(:set_tx_lo_export_enabled,(:enabled,Bool),name,chan);
     genuhdset(:set_tx_lo_freq,name,chan);
-    genuhdset(:set_tx_gain,(:gain,Cdouble),chan,(:gain_name,String));
-    genuhdset(:set_normalized_tx_gain,(:gain,Cdouble),chan);
+    genuhdset(:set_tx_gain,(:gain,Real),chan,(:gain_name,String));
+    genuhdset(:set_normalized_tx_gain,(:gain,Real),chan);
     genuhdset(:set_tx_antenna,(:ant,String),chan);
-    genuhdset(:set_tx_bandwidth,(:bandwidth,Cdouble),chan);
-    genuhdset(:set_gpio_attr,(:bank,String),(:attr,String),(:value,UInt32),(:mask,UInt32),mb);
+    genuhdset(:set_tx_bandwidth,(:bandwidth,Real),chan);
+    genuhdset(:set_gpio_attr,(:bank,String),(:attr,String),(:value,Integer),(:mask,Integer),mb);
 end
 
 ## Uhd_usrp_clock
 genuhdobj("uhd_usrp_clock",(:args,String));
 genuhdget(:get_num_boards,Csize_t,prefix=:uhd_usrp_clock,t=Uhd_usrp_clock);
-genuhdget(:get_time,UInt32,(:board,Csize_t),prefix=:uhd_usrp_clock,t=Uhd_usrp_clock);
-genuhdget(:get_sensor,Uhd_sensor_value,(:name,String),(:board,Csize_t),prefix=:uhd_usrp_clock,t=Uhd_usrp_clock);
-genuhdget(:get_sensor_names,Vector{String},(:board,Csize_t),prefix=:uhd_usrp_clock,t=Uhd_usrp_clock);
+genuhdget(:get_time,UInt32,(:board,Integer),prefix=:uhd_usrp_clock,t=Uhd_usrp_clock);
+genuhdget(:get_sensor,Uhd_sensor_value,(:name,String),(:board,Integer),prefix=:uhd_usrp_clock,t=Uhd_usrp_clock);
+genuhdget(:get_sensor_names,Vector{String},(:board,Integer),prefix=:uhd_usrp_clock,t=Uhd_usrp_clock);
 
 ## set_thread_priority
 export set_thread_priority;
