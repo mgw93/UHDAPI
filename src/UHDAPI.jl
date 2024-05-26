@@ -3,8 +3,14 @@ using UHDBindings.LibUHD
 using Match
 
 ## General helper functions
-export uhd_error;
 abstract type Uhdobject end
+export uhd_error;
+export UHDError;
+struct UHDError <: Exception
+    func::Symbol
+    errorcode::uhd_error
+    msg::String
+end
 
 function getstr(f::Function) :: String
     n=100;
@@ -176,8 +182,7 @@ macro checkuhderr(ex)
                         :($geterr(s,l)) : # The global last_error function does not take a handle
                         :($geterr($(esc(h)),s,l)));
                     end
-                    #error(string($fs," returned: ",repr(uhd_errcode),"\n",errmsg));
-                    error("$($fs) returned $(repr(uhd_errcode)):\n $errmsg");
+                    throw(UHDError($(Meta.quot(fs)),uhd_errcode,errmsg));
                 end
                 uhd_errcode
             end
@@ -186,6 +191,10 @@ macro checkuhderr(ex)
     @warn "This does not seem to be a uhd function."
     return esc(ex);    
 end;
+
+function Base.showerror(io::IO, err::UHDError)
+   print(io,"$(err.func) returned $(err.errorcode):\n $(err.msg)")
+end
 
 # Part of the UHD API is just wrappers around C++ vectors.
 # This generates wrappers to access them in a more convenient way.
