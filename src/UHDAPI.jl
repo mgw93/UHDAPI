@@ -439,7 +439,7 @@ function Base.unsafe_convert(t::Type{},(ref,obj)::Tuple{Ref{uhd_tune_request_t},
         obj.dsp_freq,
         Base.unsafe_convert(Cstring,obj.args)
     );
-    return unsafe_convert(t,ref);
+    return Base.unsafe_convert(t,ref);
 end
 
 function Uhd_tune_request(freq::Float64) :: Uhd_tune_request
