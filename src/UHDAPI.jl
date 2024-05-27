@@ -518,21 +518,11 @@ version_string() = getstr(uhd_get_version_string);
 genuhdobj("uhd_usrp",(:args,String));
 Uhd_usrp()=Uhd_usrp("");
 export set_rx_freq, set_tx_freq, get_rx_stream, get_tx_stream, get_rx_info, get_tx_info, get_mboard_eeprom, get_dboard_eeprom;
-function set_rx_freq(u::Uhd_usrp,tune_request::Uhd_tune_request,chan::Integer) :: uhd_tune_result_t
-    getvalue(uhd_tune_result_t) do tune_result
-        @checkuhderr uhd_usrp_set_rx_freq(u,tune_request,chan,tune_result);
-    end
-end
 function set_rx_freq(u::Uhd_usrp,freq::Real,chan::Integer) :: uhd_tune_result_t
     tune_req=Uhd_tune_request(freq);
     set_rx_freq(u,tune_req,chan)
 end
 
-function set_tx_freq(u::Uhd_usrp,tune_request::Uhd_tune_request,chan::Integer) :: uhd_tune_result_t
-    getvalue(uhd_tune_result_t) do tune_result
-        @checkuhderr uhd_usrp_set_tx_freq(u,tune_request,chan,tune_result);
-    end
-end
 function set_tx_freq(u::Uhd_usrp,freq::Real,chan::Integer) :: uhd_tune_result_t
     tune_req=Uhd_tune_request(freq);
     set_tx_freq(u,tune_req,chan)
@@ -666,6 +656,7 @@ begin
     genuhdset(:set_dboard_eeprom,(:db_eeprom,Uhd_dboard_eeprom),(:unit,String),(:slot,String),mb);
     genuhdset(:set_rx_subdev_spec,(:subdev_spec,Uhd_subdev_spec),mb);
     genuhdset(:set_rx_rate,(:rate,Real),chan);
+    genuhdget(:set_rx_freq,uhd_tune_result_t,(:tune_req,Uhd_tune_request),chan);
     genuhdset(:set_rx_lo_source,(:src,String),name,chan);
     genuhdset(:set_rx_lo_export_enabled,(:enabled,Bool),name,chan);
     genuhdget(:set_rx_lo_freq,Cdouble,(:freq,Real),name,chan);
@@ -678,6 +669,7 @@ begin
     genuhdset(:set_rx_iq_balance_enabled,(:enb,Bool),chan);
     genuhdset(:set_tx_subdev_spec,(:subdev_spec,Uhd_subdev_spec),mb);
     genuhdset(:set_tx_rate,(:rate,Real),chan);
+    genuhdget(:set_tx_freq,uhd_tune_result_t,(:tune_req,Uhd_tune_request),chan);
     genuhdset(:set_tx_lo_source,(:src,String),name,chan);
     genuhdset(:set_tx_lo_export_enabled,(:enabled,Bool),name,chan);
     genuhdset(:set_tx_lo_freq,name,chan);
