@@ -1,7 +1,7 @@
 name = "UHDAPI"
 uuid = "88b9fb92-0a92-4565-b203-7b4972b7e638"
 authors = ["Markus Wirsing <markus.wirsing@gmx.de>"]
-version = "0.3.1"
+version = "0.4.0"
 
 [deps]
 Match = "7eb4fadd-790c-5f42-8a69-bfa0b872bfbf"

@@ -338,13 +338,20 @@ begin
     genuhdobj("uhd_rx_streamer",getters=g);
 end
 export recv!;
-function recv!(buffers::Vector{T},streamer::Uhd_rx_streamer,samps_per_buff::Integer,timeout::Real,one_packet::Bool=false) :: Tuple{Csize_t,Uhd_rx_metadata} where {T<:Ref}
+function recv!(buffers::Vector{Vector{T}},streamer::Uhd_rx_streamer,samps_per_buff::Integer,timeout::Real,one_packet::Bool=false) :: Tuple{Csize_t,Uhd_rx_metadata} where {T<:Number}
     md=Uhd_rx_metadata();
-    pointers=pointer.(getindex.(buffers));
-    GC.@preserve buffers items_received=getvalue(Csize_t) do items_received
-        @checkuhderr uhd_rx_streamer_recv(streamer,pointers,samps_per_buff,md,timeout,one_packet,items_received);
+    items_received=getvalue(Csize_t) do items_received
+        @checkuhderr uhd_rx_streamer_recv(streamer,buffers,samps_per_buff,md,timeout,one_packet,items_received);
     end
     return (items_received,md);
+end
+function recv!(buffers::Vector{Vector{T}},streamer::Uhd_rx_streamer,timeout::Real,one_packet::Bool=false) :: Tuple{Csize_t,Uhd_rx_metadata} where {T<:Number}
+    num_samps=minimum(length.(buffers));
+    recv!(buffers,streamer,num_samps,timeout,one_packet);
+end
+function recv!(buffers::Vector{<:Ref},streamer::Uhd_rx_streamer,samps_per_buff::Integer,timeout::Real,one_packet::Bool=false) :: Tuple{Csize_t,Uhd_rx_metadata}
+    Base.depwarn("Passing Refs to recv! is deprecated. Directly pass a Vector of Vectors instead.",:recv!)
+    recv!(getindex.(buffers),streamer,samps_per_buff,timeout,one_packet);
 end
 genuhdset(:issue_stream_cmd,(:stream_cmd,uhd_stream_cmd_t),prefix=:uhd_rx_streamer_,t=Uhd_rx_streamer)
 
@@ -368,11 +375,14 @@ function recv_async_msg(streamer::Uhd_tx_streamer,timeout::Real) :: Union{Nothin
 end
 
 export send;
+genuhdget(:send,Csize_t,(:buffers,Vector{Vector{T}} where {T<:Number}),(:samps_per_buff,Integer),(:md,Uhd_tx_metadata),(:timeout,Real),prefix=:uhd_tx_streamer_,t=Uhd_tx_streamer);
+function send(streamer::Uhd_tx_streamer,buffers::Vector{Vector{T}},md::Uhd_tx_metadata,timeout::Real) where {T<:Number}
+    num_samps=minimum(length.(buffers));
+    send(streamer,buffers,num_samps,md,timeout);
+end
 function send(streamer::Uhd_tx_streamer,buffers::Vector{T},samps_per_buff::Integer,md::Uhd_tx_metadata,timeout::Real) :: Csize_t where {T<:Ref}
-    pointers=pointer.(getindex.(buffers));
-    GC.@preserve buffers items_received=getvalue(Csize_t) do items_sent
-        @checkuhderr uhd_tx_streamer_send(streamer,pointers,samps_per_buff,md,timeout,items_sent);
-    end
+    Base.depwarn("Passing Refs to send is deprecated. Directly pass a Vector of Vectors instead.",:send)
+    send(streamer,getindex.(buffers),samps_per_buff,md,timeout);
 end
 
 
