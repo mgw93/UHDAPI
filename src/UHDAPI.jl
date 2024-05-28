@@ -323,7 +323,8 @@ begin
 end
 
 ## uhd_rx_streamer
-export uhd_stream_cmd_t, uhd_stream_mode_t;
+export Uhd_stream_cmd, uhd_stream_mode_t;
+const Uhd_stream_cmd=uhd_stream_cmd_t;
 for name in names(LibUHD; all=true)
     if startswith(string(name), "UHD_STREAM_MODE")
         @eval export $name
@@ -517,7 +518,7 @@ version_string() = getstr(uhd_get_version_string);
 ## Uhd_usrp
 genuhdobj("uhd_usrp",(:args,String));
 Uhd_usrp()=Uhd_usrp("");
-export set_rx_freq, set_tx_freq, get_rx_stream, get_tx_stream, get_rx_info, get_tx_info, get_mboard_eeprom, get_dboard_eeprom;
+export get_rx_stream, get_tx_stream, get_rx_info, get_tx_info, get_mboard_eeprom, get_dboard_eeprom;
 function set_rx_freq(u::Uhd_usrp,freq::Real,chan::Integer) :: uhd_tune_result_t
     tune_req=Uhd_tune_request(freq);
     set_rx_freq(u,tune_req,chan)
