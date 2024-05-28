@@ -32,7 +32,7 @@ sargs=Uhd_stream_args("fc32","sc16","",[channel]);
 stream=get_rx_stream(usrp,sargs)
 
 # Specify streaming command: Stream finite number of samples, start immediately.
-start_cmd=uhd_stream_cmd_t(UHD_STREAM_MODE_NUM_SAMPS_AND_DONE,1e5,true,0,0);
+start_cmd=Uhd_stream_cmd(UHD_STREAM_MODE_NUM_SAMPS_AND_DONE,1e5,true,0,0);
 
 # Define buffer for the data
 buffer=Vector{Complex{Float32}}(undef,100000);
@@ -41,5 +41,5 @@ buffer=Vector{Complex{Float32}}(undef,100000);
 issue_stream_cmd(stream,start_cmd);
 
 # Receive the samples
-(n,md)=recv!([Ref(buffer)],stream,length(buffer),2.0)
+(n,md)=recv!([buffer],stream,2.0)
 ```
