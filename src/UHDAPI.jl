@@ -24,7 +24,7 @@ function getstr(f::Function) :: String
     end
 end
 
-function getvalue(f::Function, t::Type{T}) :: T where {T<:Uhdobject}
+function getvalue(f::Function, t::Type{<:Uhdobject})
     tmp=t();
     f(tmp);
     return tmp;
@@ -323,7 +323,8 @@ begin
 end
 
 ## uhd_rx_streamer
-export uhd_stream_cmd_t, uhd_stream_mode_t;
+export Uhd_stream_cmd, uhd_stream_cmd_t, uhd_stream_mode_t;
+const Uhd_stream_cmd=uhd_stream_cmd_t;
 for name in names(LibUHD; all=true)
     if startswith(string(name), "UHD_STREAM_MODE")
         @eval export $name
@@ -400,18 +401,19 @@ struct Uhd_stream_args
     channel_list :: Vector{Union{Int64, UInt64}}
 end
 
-function Base.getproperty(obj::Uhd_stream_args,sym::Symbol)
-    if sym===:cref
-        return Ref(uhd_stream_args_t(
-            Base.unsafe_convert(Cstring,obj.cpu_format),
-            Base.unsafe_convert(Cstring,obj.otw_format),
-            Base.unsafe_convert(Cstring,obj.args),
-            pointer(obj.channel_list),
-            length(obj.channel_list)
-        ));
-    else
-        return getfield(obj,sym);
-    end
+function Base.cconvert(_::Type{Ptr{uhd_stream_args_t}},x::Uhd_stream_args)
+    ref=Ref{uhd_stream_args_t}();
+    return (ref,x);
+end
+function Base.unsafe_convert(t::Type{Ptr{uhd_stream_args_t}},(ref,obj)::Tuple{Ref{uhd_stream_args_t},Uhd_stream_args})
+    ref[]=uhd_stream_args_t(
+        Base.unsafe_convert(Cstring,obj.cpu_format),
+        Base.unsafe_convert(Cstring,obj.otw_format),
+        Base.unsafe_convert(Cstring,obj.args),
+        pointer(obj.channel_list),
+        length(obj.channel_list)
+    );
+    return Base.unsafe_convert(t,ref);
 end
 
 ## uhd_tune_request_t
@@ -425,19 +427,20 @@ struct Uhd_tune_request
     args :: String
 end
 
-function Base.getproperty(obj::Uhd_tune_request,sym::Symbol)
-    if sym===:cref
-        return Ref(uhd_tune_request_t(
-            obj.target_freq,
-            obj.rf_freq_policy,
-            obj.rf_freq,
-            obj.dsp_freq_policy,
-            obj.dsp_freq,
-            Base.unsafe_convert(Cstring,obj.args)
-        ));
-    else
-        return getfield(obj,sym);
-    end
+function Base.cconvert(_::Type{Ptr{uhd_tune_request_t}},obj::Uhd_tune_request)
+    ref=Ref{uhd_tune_request_t}();
+    return (ref,obj);
+end
+function Base.unsafe_convert(t::Type{},(ref,obj)::Tuple{Ref{uhd_tune_request_t},Uhd_tune_request})
+    ref[]=uhd_tune_request_t(
+        obj.target_freq,
+        obj.rf_freq_policy,
+        obj.rf_freq,
+        obj.dsp_freq_policy,
+        obj.dsp_freq,
+        Base.unsafe_convert(Cstring,obj.args)
+    );
+    return Base.unsafe_convert(t,ref);
 end
 
 function Uhd_tune_request(freq::Float64) :: Uhd_tune_request
@@ -515,38 +518,28 @@ version_string() = getstr(uhd_get_version_string);
 ## Uhd_usrp
 genuhdobj("uhd_usrp",(:args,String));
 Uhd_usrp()=Uhd_usrp("");
-export set_rx_freq, set_tx_freq, get_rx_stream, get_tx_stream, get_rx_info, get_tx_info, get_mboard_eeprom, get_dboard_eeprom;
-function set_rx_freq(u::Uhd_usrp,tune_request::Uhd_tune_request,chan::Integer) :: uhd_tune_result_t
-    GC.@preserve tune_request getvalue(uhd_tune_result_t) do tune_result
-        @checkuhderr uhd_usrp_set_rx_freq(u,tune_request.cref,chan,tune_result);
-    end
-end
+export get_rx_stream, get_tx_stream, get_rx_info, get_tx_info, get_mboard_eeprom, get_dboard_eeprom;
 function set_rx_freq(u::Uhd_usrp,freq::Real,chan::Integer) :: uhd_tune_result_t
     tune_req=Uhd_tune_request(freq);
     set_rx_freq(u,tune_req,chan)
 end
 
-function set_tx_freq(u::Uhd_usrp,tune_request::Uhd_tune_request,chan::Integer) :: uhd_tune_result_t
-    GC.@preserve tune_request getvalue(uhd_tune_result_t) do tune_result
-        @checkuhderr uhd_usrp_set_tx_freq(u,tune_request.cref,chan,tune_result);
-    end
-end
 function set_tx_freq(u::Uhd_usrp,freq::Real,chan::Integer) :: uhd_tune_result_t
     tune_req=Uhd_tune_request(freq);
     set_tx_freq(u,tune_req,chan)
 end
 
 function get_rx_stream(u::Uhd_usrp,args::Uhd_stream_args) :: Uhd_rx_streamer
-    rxs=GC.@preserve args getvalue(Uhd_rx_streamer) do x
-        @checkuhderr uhd_usrp_get_rx_stream(u,args.cref,x);
+    rxs=getvalue(Uhd_rx_streamer) do x
+        @checkuhderr uhd_usrp_get_rx_stream(u,args,x);
     end
     rxs.usrp=Ref(u); # Prevents the USRP object from being garbage collected while the streamer exists.
     return rxs;
 end
 
 function get_tx_stream(u::Uhd_usrp,args::Uhd_stream_args) :: Uhd_tx_streamer
-    txs=GC.@preserve args getvalue(Uhd_tx_streamer) do x
-        @checkuhderr uhd_usrp_get_tx_stream(u,args.cref,x);
+    txs=getvalue(Uhd_tx_streamer) do x
+        @checkuhderr uhd_usrp_get_tx_stream(u,args,x);
     end
     txs.usrp=Ref(u); # Prevents the USRP object from being garbage collected while the streamer exists.
     return txs;
@@ -664,6 +657,7 @@ begin
     genuhdset(:set_dboard_eeprom,(:db_eeprom,Uhd_dboard_eeprom),(:unit,String),(:slot,String),mb);
     genuhdset(:set_rx_subdev_spec,(:subdev_spec,Uhd_subdev_spec),mb);
     genuhdset(:set_rx_rate,(:rate,Real),chan);
+    genuhdget(:set_rx_freq,uhd_tune_result_t,(:tune_req,Uhd_tune_request),chan);
     genuhdset(:set_rx_lo_source,(:src,String),name,chan);
     genuhdset(:set_rx_lo_export_enabled,(:enabled,Bool),name,chan);
     genuhdget(:set_rx_lo_freq,Cdouble,(:freq,Real),name,chan);
@@ -676,6 +670,7 @@ begin
     genuhdset(:set_rx_iq_balance_enabled,(:enb,Bool),chan);
     genuhdset(:set_tx_subdev_spec,(:subdev_spec,Uhd_subdev_spec),mb);
     genuhdset(:set_tx_rate,(:rate,Real),chan);
+    genuhdget(:set_tx_freq,uhd_tune_result_t,(:tune_req,Uhd_tune_request),chan);
     genuhdset(:set_tx_lo_source,(:src,String),name,chan);
     genuhdset(:set_tx_lo_export_enabled,(:enabled,Bool),name,chan);
     genuhdset(:set_tx_lo_freq,name,chan);
